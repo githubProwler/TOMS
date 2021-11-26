@@ -20,8 +20,8 @@ func (m *Manager) addNewWorker(ip string) {
 	m.n++
 	m.workers = append(m.workers, ip)
 	m.length += len(ip) + 1
-	sendInitialState(m.workers, m.n, m.length)
-	// go updateAllWorkers(m.n, ip, m.workers[:m.n-1])
+	go sendInitialState(m.workers, m.n, m.length)
+	go updateAllWorkers(m.n, ip, m.workers[:m.n-1])
 	log.Println("[Manager][addNewWorker][0] ", ip)
 	m.mu.Unlock()
 }
