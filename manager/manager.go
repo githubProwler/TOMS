@@ -40,7 +40,7 @@ func sendInitialState(workers []string, n int, length int) {
 }
 
 func updateAllWorkers(n int, ip string, workers []string) {
-	request := "1;" + strconv.Itoa(n) + ";" + ip + "\n"
+	request := "1;" + ip + "\n"
 
 	for _, addr := range workers[:n-1] {
 		log.Println("[Manager][updateWorker][0] Rcvr: ", addr, " Msg: ", ip)

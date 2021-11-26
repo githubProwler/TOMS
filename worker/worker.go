@@ -60,7 +60,7 @@ func (w *Worker) BMulticastRequest(messageType int, message int, reference strin
 	w.mu.Lock()
 	for _, node := range w.nodes {
 		if node == w.myAddress {
-			continue
+			go w.deliverFn(message, w.deliverArgs)
 		}
 		go network.SendMessage(finalMessage, node)
 	}
