@@ -20,15 +20,16 @@ func (m *Manager) addNewWorker(ip string) {
 	m.n++
 	m.workers = append(m.workers, ip)
 	m.length += len(ip) + 1
-	go sendInitialState(m.workers, m.n, m.length)
-	go updateAllWorkers(m.n, ip, m.workers[:m.n-2])
+	sendInitialState(m.workers, m.n, m.length)
+	// go updateAllWorkers(m.n, ip, m.workers[:m.n-1])
 	log.Println("[Manager][addNewWorker][0] ", ip)
 	m.mu.Unlock()
 }
 
 func sendInitialState(workers []string, n int, length int) {
 	var request strings.Builder
-	request.Grow(length + 3 + len(strconv.Itoa(n)))
+	reqLength := length + 3 + len(strconv.Itoa(n))
+	request.Grow(reqLength)
 	request.WriteString("0;")
 	request.WriteString(strconv.Itoa(n))
 	for _, address := range workers {
@@ -41,7 +42,7 @@ func sendInitialState(workers []string, n int, length int) {
 func updateAllWorkers(n int, ip string, workers []string) {
 	request := "1;" + strconv.Itoa(n) + ";" + ip + "\n"
 
-	for _, addr := range workers {
+	for _, addr := range workers[:n-1] {
 		log.Println("[Manager][updateWorker][0] Rcvr: ", addr, " Msg: ", ip)
 		go network.SendMessage(request, addr)
 	}

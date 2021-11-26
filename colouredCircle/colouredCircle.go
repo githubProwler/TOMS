@@ -74,7 +74,7 @@ func (cc *ColouredCircle) loop() error {
 			gtx := layout.NewContext(&cc.windowState.ops, e)
 
 			if cc.windowState.startButton.Clicked() {
-				cc.fn(cc, cc.windowState.colourEditor.Text())
+				cc.fn(cc.windowState.colourEditor.Text(), cc.fnArgs)
 			}
 
 			layout.Flex{
@@ -157,10 +157,11 @@ func (cc *ColouredCircle) createWindow(name string) {
 	os.Exit(0)
 }
 
-type OnClickFn func(*ColouredCircle, string)
+type OnClickFn func(string, interface{})
 
 type ColouredCircle struct {
 	fn          OnClickFn
+	fnArgs      interface{}
 	window      *app.Window
 	windowState *windowState
 }
@@ -177,8 +178,9 @@ func (cc *ColouredCircle) AddColor(inputNum int) {
 // Calling Main is necessary because some operating systems
 // require control of the main thread of the program for
 // running windows.
-func (cc *ColouredCircle) Main(name string, fn OnClickFn) {
+func (cc *ColouredCircle) Main(name string, fn OnClickFn, fnArgs interface{}) {
 	cc.fn = fn
+	cc.fnArgs = fnArgs
 	go cc.createWindow(name)
 	app.Main()
 }
