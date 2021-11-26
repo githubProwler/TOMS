@@ -2,7 +2,8 @@ package main
 
 import (
 	"TOMS/colouredCircle"
-	"TOMS/myRPC"
+	"TOMS/manager"
+	"TOMS/worker"
 	"flag"
 	"log"
 	"strconv"
@@ -102,18 +103,38 @@ func (msg *Message) AddColor(rqs AddColorRequest, rsp *AddColorResponse) error {
 }
 
 func main() {
+
 	// var client myRPC.Client
 	msg := new(Message)
 	msg.cc = new(colouredCircle.ColouredCircle)
 	server := flag.Bool("server", false, "Set to run program as a server")
+	managerAddress := flag.String("mAddr", "", "Manager server address")
 	flag.Parse()
 
 	if *server {
-		go msg.cc.Main("Server", cbk)
+		// go msg.cc.Main("Server", cbk)
 		log.Println("Starting a server")
-		myRPC.StartServer(msg, ":1234")
+		// myRPC.StartServer(msg, ":1234")
+		startManager()
 	} else {
-		log.Println("Starting a client")
-		startClient()
+		if len(*managerAddress) > 9 {
+			log.Println("Starting a client, manager: ", *managerAddress)
+			// startClient()
+			testClient(*managerAddress)
+		}
 	}
+}
+
+func testServer() {
+	// network.StartServer()
+}
+
+func startManager() {
+	var m manager.Manager
+	m.StartManager()
+}
+
+func testClient(manager string) {
+	var w worker.Worker
+	w.StartWorker(manager)
 }
