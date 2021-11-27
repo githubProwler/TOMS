@@ -2,89 +2,53 @@ package worker
 
 import (
 	"TOMS/network"
-	"log"
+	"TOMS/pqueue"
 	"strconv"
-	"strings"
 	"sync"
 	"time"
 )
 
 type Worker struct {
-	mu          sync.Mutex
-	id          int
-	nodes       []string
-	myAddress   string
-	deliverFn   func(int, interface{})
-	deliverArgs interface{}
+	mu              sync.Mutex
+	id              int
+	nodes           []string
+	myAddress       string
+	deliverFn       func(int, interface{})
+	deliverArgs     interface{}
+	messageCounter  int
+	next            int
+	messages        pqueue.PQueue
+	messageLock     sync.Mutex
+	waitingFor      int
+	messagePriority string
 }
 
-func (w *Worker) requestHandler(request string) {
-	if len(request) == 0 {
-		log.Fatal("[Manager][Handler] Error: Empty request")
-	}
-
-	if request[0] == '0' {
-		w.init(strings.Split(request, ";")[1:])
-	}
-	if request[0] == '1' {
-		w.addNode(strings.Split(request, ";")[1])
-	}
-	if request[0] == '2' {
-		w.deliver(strings.Split(request, ";")[1])
-	}
-}
-
-func (w *Worker) deliver(request string) {
-	requestNum, _ := strconv.Atoi(request)
-	log.Println("[Worker][Deliver] Delivering request:", requestNum, request)
-	w.deliverFn(requestNum, w.deliverArgs)
-}
-
-func (w *Worker) addNode(node string) {
+func (w *Worker) SendReliable(message int) {
+	w.messageLock.Lock()
 	w.mu.Lock()
-	w.nodes = append(w.nodes, node)
-	log.Println("[Worker][AddNode][0] ", node)
-	log.Println("[Worker][AddNode][1] ", w.nodes)
-	w.mu.Unlock()
-}
+	finalMessage := string(REQUEST) + ";" + w.myAddress + ";" + w.makeReference() + ";" + strconv.Itoa(message) + "\n"
+	w.waitingFor = len(w.nodes)
+	w.messagePriority = ""
 
-func (w *Worker) init(workers []string) {
-	w.id, _ = strconv.Atoi(workers[0])
-	w.nodes = append(w.nodes, workers[1:]...)
-	log.Println("[Worker][AddNode][1] ", w.id, " ", w.nodes)
-	w.mu.Unlock()
-}
-
-func (w *Worker) BMulticastRequest(messageType int, message int, reference string) {
-	finalMessage := strconv.Itoa(messageType) + ";" + w.myAddress + ";" + reference + ";" + strconv.Itoa(message) + "\n"
-	w.mu.Lock()
 	for _, node := range w.nodes {
-		if node == w.myAddress {
-			go w.deliverFn(message, w.deliverArgs)
-		}
 		go network.SendMessage(finalMessage, node)
 	}
 	w.mu.Unlock()
 }
 
 func (w *Worker) BMulticast(message int) {
-	finalMessage := "2;" + strconv.Itoa(message) + "\n"
+	finalMessage := string(DELIVER_WITHOUT_ISIS) + ";" + strconv.Itoa(message) + "\n"
 	for _, node := range w.nodes {
 		go network.SendMessage(finalMessage, node)
 	}
 }
 
-// func (w *Worker) BMulticastAgree(messageType int, message int, reference string, agreedNumber string) {
-// 	finalMessage := strconv.Itoa(messageType) + ";" + reference + ";" + agreedNumber + ";" + strconv.Itoa(message) + "\n"
-// 	w.mu.Lock()
-// 	for _, node := range w.nodes {
-// 		if node == w.myAddress {
-// 			continue
-// 		}
-// 		go network.SendMessage(finalMessage, node)
-// 	}
-// 	w.mu.Unlock()
-// }
+func (w *Worker) IsFree() bool {
+	w.mu.Lock()
+	ans := w.waitingFor == 0
+	w.mu.Unlock()
+	return ans
+}
 
 func (w *Worker) StartWorker(managerAddress string, deliverFn func(int, interface{}), deliverArgs interface{}) {
 	w.mu.Lock()
@@ -93,7 +57,8 @@ func (w *Worker) StartWorker(managerAddress string, deliverFn func(int, interfac
 	w.myAddress = s.GetAddress()
 	w.deliverFn = deliverFn
 	w.deliverArgs = deliverArgs
-	request := "0;" + w.myAddress + "\n"
+	w.messagePriority = ""
+	request := string(INITIAL_STATE) + ";" + w.myAddress + "\n"
 	go func() {
 		time.Sleep(time.Second)
 		network.SendMessage(request, managerAddress)

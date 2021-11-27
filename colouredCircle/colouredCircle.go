@@ -50,9 +50,10 @@ func timer(c chan bool) {
 }
 
 func (cc *ColouredCircle) updateColour(inputNum uint) {
-	cc.windowState.colour.B = cc.windowState.colour.G
-	cc.windowState.colour.G = cc.windowState.colour.R
-	cc.windowState.colour.R = uint8((inputNum + uint(cc.windowState.colour.R)) % 256)
+	redNumber := uint8((inputNum + uint(cc.windowState.colour.R)) % 256)
+	cc.windowState.colour.R = cc.windowState.colour.G
+	cc.windowState.colour.G = cc.windowState.colour.B
+	cc.windowState.colour.B = redNumber
 
 	cc.window.Invalidate()
 }
@@ -140,7 +141,6 @@ func (cc *ColouredCircle) loop() error {
 func (cc *ColouredCircle) createWindow(name string) {
 	cc.window = app.NewWindow(
 		app.Title(name),
-
 		app.Size(unit.Dp(400), unit.Dp(400)),
 	)
 
@@ -162,6 +162,10 @@ type ColouredCircle struct {
 }
 
 func (cc *ColouredCircle) AddColor(inputNum int) {
+	inputNum = inputNum % 256
+	if inputNum < 0 {
+		inputNum += 256
+	}
 	cc.updateColour(uint(inputNum))
 }
 
