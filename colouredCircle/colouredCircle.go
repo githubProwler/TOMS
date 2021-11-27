@@ -1,21 +1,22 @@
 package colouredCircle
 
 import (
-	"fmt"
 	"image"
 	"image/color"
 	"log"
+	"math/rand"
 	"os"
+	"strconv"
+	"time"
 
 	"gioui.org/app"
-	"gioui.org/f32"
 	"gioui.org/font/gofont"
+	"gioui.org/io/event"
 	"gioui.org/io/system"
 	"gioui.org/layout"
 	"gioui.org/op"
 	"gioui.org/op/clip"
 	"gioui.org/op/paint"
-	"gioui.org/text"
 	"gioui.org/unit"
 	"gioui.org/widget"
 	"gioui.org/widget/material"
@@ -25,12 +26,13 @@ type C = layout.Context
 type D = layout.Dimensions
 
 type windowState struct {
-	ops          op.Ops
-	startButton  widget.Clickable
-	colourEditor widget.Editor
-	colour       color.NRGBA
-	colourString string
-	theme        material.Theme
+	ops         op.Ops
+	startButton widget.Clickable
+	started     bool
+	colour      color.NRGBA
+	theme       material.Theme
+	c           chan bool
+	closed      bool
 }
 
 func minInt(a, b int) int {
@@ -40,24 +42,78 @@ func minInt(a, b int) int {
 	return b
 }
 
+func timer(c chan bool) {
+	for {
+		time.Sleep(time.Millisecond * time.Duration(rand.Intn(2000)+100))
+		c <- true
+	}
+}
+
 func (cc *ColouredCircle) updateColour(inputNum uint) {
 	cc.windowState.colour.B = cc.windowState.colour.G
 	cc.windowState.colour.G = cc.windowState.colour.R
 	cc.windowState.colour.R = uint8((inputNum + uint(cc.windowState.colour.R)) % 256)
 
-	red := fmt.Sprint(cc.windowState.colour.R)
-	green := fmt.Sprint(cc.windowState.colour.G)
-	blue := fmt.Sprint(cc.windowState.colour.B)
-	cc.windowState.colourString = "R: " + red + " G: " + green + " B: " + blue
 	cc.window.Invalidate()
 }
 
 func initializeWindowState(state *windowState) {
-	state.colourString = "R: 0 G: 0 B: 0"
-	state.colourEditor.SingleLine = true
-	state.colourEditor.Alignment = text.Middle
 	state.colour = color.NRGBA{R: 0, G: 0, B: 0, A: 255}
 	state.theme = *material.NewTheme(gofont.Collection())
+	state.c = make(chan bool)
+	go timer(state.c)
+}
+
+func (cc *ColouredCircle) handleWindowEvent(e event.Event) error {
+	// log.Printf("Type: %T\n", e)
+
+	switch e := e.(type) {
+	case system.FrameEvent:
+		gtx := layout.NewContext(&cc.windowState.ops, e)
+
+		if cc.windowState.startButton.Clicked() {
+			cc.windowState.started = !cc.windowState.started
+		}
+
+		layout.Flex{
+			Axis:    layout.Vertical,
+			Spacing: layout.SpaceEnd,
+		}.Layout(gtx,
+			layout.Rigid(
+				func(gtx C) D {
+					MaxX := gtx.Constraints.Max.X
+					MaxY := gtx.Constraints.Max.Y
+
+					d := image.Point{X: MaxX, Y: MaxY - 37}
+					// radius = float32(minInt(d.X/2, d.Y/2))
+					rect := image.Rect(0, 0, d.X, d.Y)
+					r := clip.Rect(rect).Op()
+					paint.FillShape(gtx.Ops, cc.windowState.colour, r)
+
+					return layout.Dimensions{Size: d}
+				},
+			),
+			layout.Rigid(
+				func(gtx C) D {
+					var text string
+					if cc.windowState.started {
+						text = "Stop"
+					} else {
+						text = "Start"
+					}
+					btn := material.Button(&cc.windowState.theme, &cc.windowState.startButton, text)
+					return btn.Layout(gtx)
+				},
+			),
+		)
+
+		e.Frame(gtx.Ops)
+	case system.DestroyEvent:
+		cc.windowState.closed = true
+		return e.Err
+	}
+
+	return nil
 }
 
 func (cc *ColouredCircle) loop() error {
@@ -66,81 +122,18 @@ func (cc *ColouredCircle) loop() error {
 	initializeWindowState(cc.windowState)
 
 	for {
-		e := <-cc.window.Events()
-		// fmt.Printf("Type: %T\n", e)
-
-		switch e := e.(type) {
-		case system.FrameEvent:
-			gtx := layout.NewContext(&cc.windowState.ops, e)
-
-			if cc.windowState.startButton.Clicked() {
-				cc.fn(cc.windowState.colourEditor.Text(), cc.fnArgs)
+		select {
+		case e := <-cc.window.Events():
+			err := cc.handleWindowEvent(e)
+			if err != nil || cc.windowState.closed {
+				return err
 			}
-
-			layout.Flex{
-				Axis:    layout.Vertical,
-				Spacing: layout.SpaceEnd,
-			}.Layout(gtx,
-				layout.Rigid(
-					func(gtx C) D {
-						MaxX := gtx.Constraints.Max.X
-						MaxY := gtx.Constraints.Max.Y
-						var radius float32
-
-						d := image.Point{X: MaxX, Y: MaxY / 2}
-						radius = float32(minInt(d.X/2, d.Y/2))
-						circle := clip.Circle{
-							Center: f32.Point{X: float32(d.X / 2), Y: float32(d.Y / 2)},
-							Radius: radius,
-						}.Op(gtx.Ops)
-
-						paint.FillShape(gtx.Ops, windowState.colour, circle)
-
-						return layout.Dimensions{Size: d}
-					},
-				),
-				layout.Rigid(
-					func(gtx C) D {
-						margin := layout.Inset{
-							Top:    unit.Dp(20),
-							Bottom: unit.Dp(20),
-						}
-
-						return margin.Layout(gtx,
-							func(gtx C) D {
-								resultColor := material.Label(&cc.windowState.theme, unit.Sp(20), windowState.colourString)
-								resultColor.Alignment = text.Middle
-								return resultColor.Layout(gtx)
-							},
-						)
-					},
-				),
-				layout.Rigid(
-					material.Editor(&cc.windowState.theme, &cc.windowState.colourEditor, "Input Color").Layout,
-				),
-				layout.Rigid(
-					func(gtx C) D {
-						margin := layout.Inset{
-							Top:    unit.Dp(10),
-							Bottom: unit.Dp(10),
-							Right:  unit.Dp(40),
-							Left:   unit.Dp(40),
-						}
-
-						return margin.Layout(gtx,
-							func(gtx C) D {
-								btn := material.Button(&cc.windowState.theme, &cc.windowState.startButton, "Enter")
-								return btn.Layout(gtx)
-							},
-						)
-					},
-				),
-			)
-
-			e.Frame(gtx.Ops)
-		case system.DestroyEvent:
-			return e.Err
+		case <-cc.windowState.c:
+			if cc.windowState.started {
+				cc.fn(strconv.Itoa(rand.Intn(256)), cc.fnArgs)
+			}
 		}
+
 	}
 }
 
@@ -152,8 +145,10 @@ func (cc *ColouredCircle) createWindow(name string) {
 	)
 
 	if err := cc.loop(); err != nil {
+		log.Print("Hello")
 		log.Fatal(err)
 	}
+	log.Print("Hello")
 	os.Exit(0)
 }
 
