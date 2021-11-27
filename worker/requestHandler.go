@@ -77,18 +77,14 @@ func (w *Worker) receiveAgreed(args []string) {
 
 func (w *Worker) receiveProposal(proposal string) {
 	w.mu.Lock()
-	defer w.mu.Unlock()
 	w.waitingFor--
 
 	if w.messagePriority == "" || comparePriority(w.messagePriority, proposal) {
 		w.messagePriority = proposal
 	}
-	proposalNumber := getProposalNumber(proposal)
-	if proposalNumber >= w.next {
-		w.next = proposalNumber + 1
-	}
 
 	if w.waitingFor > 0 {
+		w.mu.Unlock()
 		return
 	}
 
@@ -96,5 +92,6 @@ func (w *Worker) receiveProposal(proposal string) {
 	for _, node := range w.nodes {
 		go network.SendMessage(finalMessage, node)
 	}
+	w.mu.Unlock()
 	w.messageLock.Unlock()
 }

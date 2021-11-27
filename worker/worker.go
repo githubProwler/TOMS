@@ -43,17 +43,12 @@ func (w *Worker) BMulticast(message int) {
 	}
 }
 
-// func (w *Worker) BMulticastAgree(messageType int, message int, reference string, agreedNumber string) {
-// 	finalMessage := strconv.Itoa(messageType) + ";" + reference + ";" + agreedNumber + ";" + strconv.Itoa(message) + "\n"
-// 	w.mu.Lock()
-// 	for _, node := range w.nodes {
-// 		if node == w.myAddress {
-// 			continue
-// 		}
-// 		go network.SendMessage(finalMessage, node)
-// 	}
-// 	w.mu.Unlock()
-// }
+func (w *Worker) IsFree() bool {
+	w.mu.Lock()
+	ans := w.waitingFor == 0
+	w.mu.Unlock()
+	return ans
+}
 
 func (w *Worker) StartWorker(managerAddress string, deliverFn func(int, interface{}), deliverArgs interface{}) {
 	w.mu.Lock()
@@ -62,6 +57,7 @@ func (w *Worker) StartWorker(managerAddress string, deliverFn func(int, interfac
 	w.myAddress = s.GetAddress()
 	w.deliverFn = deliverFn
 	w.deliverArgs = deliverArgs
+	w.messagePriority = ""
 	request := string(INITIAL_STATE) + ";" + w.myAddress + "\n"
 	go func() {
 		time.Sleep(time.Second)

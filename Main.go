@@ -35,7 +35,9 @@ func cbk(inputString string, args interface{}) {
 		log.Fatal("Passed wrong type of args to ckb callback")
 	}
 
-	w.BMulticast(inputNumber)
+	if w.IsFree() {
+		w.SendReliable(inputNumber)
+	}
 }
 
 func deliver(inputNumber int, args interface{}) {
