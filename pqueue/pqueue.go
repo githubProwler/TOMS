@@ -1,6 +1,7 @@
 package pqueue
 
 import (
+	"fmt"
 	"log"
 	"strconv"
 	"strings"
@@ -90,5 +91,13 @@ func (pq *PQueue) UpdateNode(reference string, priority string) {
 	} else {
 		pq.head = cur.next
 		insertNode(cur.prev, cur)
+	}
+}
+
+func (pq *PQueue) Print() {
+	cur := pq.head
+	for cur != nil {
+		fmt.Println("( node: ", cur, " pr: ", cur.priorityReference, " ref: ", cur.uniqueReference)
+		cur = cur.next
 	}
 }
