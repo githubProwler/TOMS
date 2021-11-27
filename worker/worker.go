@@ -70,9 +70,6 @@ func (w *Worker) BMulticastRequest(messageType int, message int, reference strin
 func (w *Worker) BMulticast(message int) {
 	finalMessage := "2;" + strconv.Itoa(message) + "\n"
 	for _, node := range w.nodes {
-		if node == w.myAddress {
-			continue
-		}
 		go network.SendMessage(finalMessage, node)
 	}
 }

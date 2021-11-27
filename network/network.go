@@ -4,9 +4,11 @@ import (
 	"bufio"
 	"fmt"
 	"log"
+	"math/rand"
 	"net"
 	"strconv"
 	"strings"
+	"time"
 )
 
 type Server struct {
@@ -83,6 +85,7 @@ func (s *Server) GetAddress() string {
 }
 
 func SendMessage(message string, addr string) {
+	time.Sleep(time.Millisecond * time.Duration(rand.Intn(800)+100))
 	conn, err := net.Dial("tcp", addr)
 	if err != nil {
 		log.Fatal("There was a problem connecting to server ", err)
