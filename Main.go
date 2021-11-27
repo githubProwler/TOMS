@@ -4,10 +4,12 @@ import (
 	"TOMS/colouredCircle"
 	"TOMS/manager"
 	"TOMS/worker"
-	"fmt"
+	"flag"
 	"log"
+	"math/rand"
 	"strconv"
 	"strings"
+	"time"
 )
 
 func setColor(inputString string, args interface{}) {
@@ -51,65 +53,21 @@ func startManager() {
 }
 
 func main() {
-	// rand.Seed(time.Now().UTC().UnixNano())
-	// var cc colouredCircle.ColouredCircle
-	// server := flag.Bool("server", false, "Set to run program as a server")
-	// managerAddress := flag.String("mAddr", "", "Manager server address")
-	// flag.Parse()
+	rand.Seed(time.Now().UTC().UnixNano())
+	var cc colouredCircle.ColouredCircle
+	server := flag.Bool("server", false, "Set to run program as a server")
+	managerAddress := flag.String("mAddr", "", "Manager server address")
+	flag.Parse()
 
-	// if *server {
-	// 	log.Println("Starting a server")
-	// 	startManager()
-	// } else {
-	// 	if len(*managerAddress) > 9 {
-	// 		var w worker.Worker
-	// 		go cc.Main("Server", cbk, &w)
-	// 		log.Println("Starting a client, manager: ", *managerAddress)
-	// 		w.StartWorker(*managerAddress, deliver, &cc)
-	// 	}
-	// }
-
-	// pq := pqueue.PQueue{}
-	// reader := bufio.NewReader(os.Stdin)
-	fmt.Println("Simple Shell")
-	fmt.Println("---------------------")
-
-	a := 5
-
-	b := &bla{}
-
-	if a > 5 && b.da() {
-		fmt.Print("Hello")
+	if *server {
+		log.Println("Starting a server")
+		startManager()
+	} else {
+		if len(*managerAddress) > 9 {
+			var w worker.Worker
+			go cc.Main("Server", cbk, &w)
+			log.Println("Starting a client, manager: ", *managerAddress)
+			w.StartWorker(*managerAddress, deliver, &cc)
+		}
 	}
-
-	// var pq pqueue.PQueue
-	// for {
-	// 	fmt.Print("Command: a/u\n-> ")
-	// 	text, _ := reader.R && b.daeadString('\n')
-	// 	// convert CRLF to LF
-	// 	text = strings.Replace(text, "\n", "", -1)
-
-	// 	args := strings.Split(text, " ")
-	// 	if len(args) != 4 {
-	// 		fmt.Println("Formatting error")
-	// 		continue
-	// 	}
-	// 	if args[0] == "a" {
-	// 		pq.AddNode(args[1], args[2], args[3])
-	// 		pq.Print()
-	// 	} else if args[0] == "u" {
-	// 		pq.UpdateNode(args[1], args[2])
-	// 		pq.Print()
-	// 	} else {
-	// 		return
-	// 	}
-	// }
-}
-
-type bla struct {
-}
-
-func (b *bla) da() bool {
-	fmt.Println("Hello from b")
-	return true
 }

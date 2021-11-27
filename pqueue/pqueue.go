@@ -106,12 +106,12 @@ func (pq *PQueue) UpdateNode(reference string, priority string) {
 func (pq *PQueue) Print() {
 	cur := pq.head
 	for cur != nil {
-		fmt.Println("( node: ", cur, " pr: ", cur.priorityReference, " ref: ", cur.uniqueReference)
+		fmt.Println("node: ", cur)
 		cur = cur.next
 	}
 }
 
-func (pq *PQueue) Popable() bool {
+func (pq *PQueue) Poppable() bool {
 	if pq.head == nil {
 		return false
 	}
