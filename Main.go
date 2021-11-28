@@ -12,19 +12,6 @@ import (
 	"time"
 )
 
-func setColor(inputString string, args interface{}) {
-	cc, ok := args.(*colouredCircle.ColouredCircle)
-	if !ok {
-		log.Fatal("Passed wrong type of args to setColor callback")
-	}
-
-	inputColor := strings.TrimSpace(inputString)
-	inputNumber, _ := strconv.Atoi(inputColor)
-	inputNumber = inputNumber % 256
-
-	cc.AddColor(inputNumber)
-}
-
 func cbk(inputString string, args interface{}) {
 	inputColor := strings.TrimSpace(inputString)
 	inputNumber, _ := strconv.Atoi(inputColor)
