@@ -52,23 +52,13 @@ func (s *Server) Serve() {
 
 func readResponse(conn net.Conn) (response string, err error) {
 	reader := bufio.NewReader(conn)
-	// _, err = reader.Discard(8)
 	if err != nil {
 		log.Fatal("There was a problem reading the request ", err)
 		return
 	}
 	response, err = reader.ReadString('\n')
-	// fmt.Print(response)
 	return
 }
-
-// func handleConnection(conn net.Conn) {
-// 	slice := make([]byte, 20)
-// 	_, err := conn.Read(slice)
-// 	if err != nil {
-// 		log.Fatal("There was a problem reading from client ", err)
-// 	}
-// }
 
 func (s *Server) GetAddress() string {
 	conn, err := net.Dial("udp", "2.2.2.2:2220")
