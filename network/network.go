@@ -2,7 +2,6 @@ package network
 
 import (
 	"bufio"
-	"fmt"
 	"log"
 	"math/rand"
 	"net"
@@ -86,6 +85,6 @@ func SendMessage(message string, addr string) {
 	if err != nil {
 		log.Fatal("There was a problem writing to server ", err)
 	}
-	fmt.Println(conn.LocalAddr().String())
+	log.Println(conn.LocalAddr().String())
 	conn.Close()
 }
